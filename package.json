@@ -18,7 +18,8 @@
   "scripts": {
     "start": "node ./bin/www",
     "getChainData": "node --experimental-repl-await ./bin/getChainData",
-    "dev": "PORT=5002 nodemon ./bin/www"
+    "dev": "PORT=5002 nodemon ./bin/www",
+    "copy_contracts": "cp -r ../nft_deals/packages/react-app/src/contracts ./"
   },
   "dependencies": {
     "cookie-parser": "~1.4.4",

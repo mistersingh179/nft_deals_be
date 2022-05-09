@@ -114,10 +114,12 @@ const init = async () => {
         console.log("found email for the previousWinner: ", user.emailAddress);
         mg.messages
           .create("mail.nftdeals.xyz", {
-            from: "Rod <rod@nftdeals.xyz>",
+            from: "Notification-Bot <no-reply@mail.nftdeals.xyz>",
             to: [user.emailAddress],
             subject: "Outbid Notification",
-            text: "You have been outbid!",
+            text:
+              "You have been outbid!" +
+              ` ${process.env.DOMAIN_ADDRESS}/auction2/${auctionAddress}`,
             template: "outbid",
             "h:X-Mailgun-Variables": JSON.stringify({
               amount: `${ethers.constants.EtherSymbol} ${displayWeiAsEther(
