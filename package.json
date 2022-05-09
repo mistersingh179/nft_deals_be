@@ -1,6 +1,8 @@
 {
   "name": "nft-deals-be",
-  "version": "0.0.0",
+  "description": "get events from the blockchain",
+  "version": "1.0.0",
+  "node": "14.9.x",
   "private": true,
   "eslintConfig": {
     "extends": [
