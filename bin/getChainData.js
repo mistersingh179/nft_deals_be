@@ -1,15 +1,42 @@
 require("dotenv").config({ debug: true, override: true });
 
-const sequelize = require("./database/sequelize");
-const User = require("./models/user");
-sequelize.sync({alter: true});
+const sequelize = require("../database/sequelize");
+const User = require("../models/user");
+sequelize.sync({ alter: true });
 
 const ethers = require("ethers");
 const deployedContracts = require("../contracts/hardhat_contracts.json");
 
+const formData = require("form-data");
+const Mailgun = require("mailgun.js");
+const moment = require("moment");
+const mailgun = new Mailgun(formData);
+const mg = mailgun.client({
+  username: "api",
+  key: process.env.MAILGUN_API_KEY,
+});
+
 const rpc_url = {
   localhost: "http://localhost:8545",
   rinkeby: `https://rinkeby.infura.io/v3/${process.env.RINKEBY_INFURA_KEY}`,
+};
+
+const displayWeiAsEther = (wei, decimals) => {
+  try {
+    if (decimals == undefined) {
+      decimals = 4;
+    }
+    return ethers.utils.commify(
+      parseFloat(ethers.utils.formatEther(wei)).toFixed(decimals)
+    );
+  } catch (e) {
+    return "0";
+  }
+};
+
+const displayDuration = (secondsLeft) => {
+  const durationToExpire = moment.duration(secondsLeft, "seconds");
+  return `${durationToExpire.hours()}h ${durationToExpire.minutes()}m ${durationToExpire.seconds()}s`;
 };
 
 const init = async () => {
@@ -57,23 +84,58 @@ const init = async () => {
       contracts.Auction.abi,
       provider
     );
-    const bidHandler = (
+    const bidHandler = async (
       fromAddress,
       previousWinnerAddress,
       amount,
       secondsLeftInAuction,
       eventObj
     ) => {
-      if (eventObj.blockNumber <= startBlockNumber){
-        console.log("ignoring old event of blockNumber: ", eventObj.blockNumber);
-        return
+      if (eventObj.blockNumber <= startBlockNumber) {
+        console.log(
+          "ignoring old event of blockNumber: ",
+          eventObj.blockNumber
+        );
+        return;
       }
       console.log("for auction: ", auctionAddress, " got bid: ");
       console.log("from: ", fromAddress);
       console.log("previousWinnerAddress: ", previousWinnerAddress);
-      console.log("amount: ", amount.toString());
-      console.log("secondsLeftInAuction: ", secondsLeftInAuction.toString());
-      console.log("blockNumber: ", eventObj.blockNumber)
+      console.log("amount: ", displayWeiAsEther(amount));
+      console.log(
+        "secondsLeftInAuction: ",
+        displayDuration(secondsLeftInAuction.toString())
+      );
+      console.log("blockNumber: ", eventObj.blockNumber);
+      const user = await User.findOne({
+        where: { walletAddress: previousWinnerAddress },
+      });
+      if (user) {
+        console.log("found email for the previousWinner: ", user.emailAddress);
+        mg.messages
+          .create("mail.nftdeals.xyz", {
+            from: "Rod <rod@nftdeals.xyz>",
+            to: [user.emailAddress],
+            subject: "Outbid Notification",
+            text: "You have been outbid!",
+            template: "outbid",
+            "h:X-Mailgun-Variables": JSON.stringify({
+              amount: `${ethers.constants.EtherSymbol} ${displayWeiAsEther(
+                amount
+              )}`,
+              fromAddress: fromAddress,
+              blockNumber: eventObj.blockNumber,
+              secondsLeftInAuction: displayDuration(
+                secondsLeftInAuction.toString()
+              ),
+              auctionLink: `${process.env.DOMAIN_ADDRESS}/auction2/${auctionAddress}`,
+            }),
+          })
+          .then((msg) => console.log(msg)) // logs response data
+          .catch((err) => console.log(err)); // logs any error
+      } else {
+        console.log("no email found for this wallet.");
+      }
     };
     auctionContract.on("Bid", bidHandler);
   };
@@ -82,14 +144,20 @@ const init = async () => {
   const auctionAddresses = await auctionFactory.auctions();
   auctionAddresses.forEach((auctionAddress) => processAuction(auctionAddress));
 
-  auctionFactory.on("AuctionGenerated", (nftOwner, auctionAddress, eventObj) => {
-    if (eventObj.blockNumber <= startBlockNumber){
-      console.log("ignoring old AuctionGenerated event of blockNumber: ", eventObj.blockNumber);
-      return
+  auctionFactory.on(
+    "AuctionGenerated",
+    (nftOwner, auctionAddress, eventObj) => {
+      if (eventObj.blockNumber <= startBlockNumber) {
+        console.log(
+          "ignoring old AuctionGenerated event of blockNumber: ",
+          eventObj.blockNumber
+        );
+        return;
+      }
+      console.log("we got a newly generated auction: ", auctionAddress);
+      processAuction(auctionAddress);
     }
-    console.log("we got a newly generated auction: ", auctionAddress);
-    processAuction(auctionAddress);
-  });
+  );
 };
 
 init().catch((err) => {
