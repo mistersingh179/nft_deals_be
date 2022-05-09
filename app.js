@@ -1,5 +1,6 @@
 require("dotenv").config({ debug: true, override: true });
 var express = require("express");
+const cors = require('cors')
 var path = require("path");
 var cookieParser = require("cookie-parser");
 const sequelize = require("./database/sequelize");
@@ -26,6 +27,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
+app.use(cors())
 
 app.use("/", indexRouter);
 app.use("/users", usersRouter);
