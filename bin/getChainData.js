@@ -1,6 +1,10 @@
-const ethers = require("ethers");
 require("dotenv").config({ debug: true, override: true });
 
+const sequelize = require("./database/sequelize");
+const User = require("./models/user");
+sequelize.sync({alter: true});
+
+const ethers = require("ethers");
 const deployedContracts = require("../contracts/hardhat_contracts.json");
 
 const rpc_url = {
