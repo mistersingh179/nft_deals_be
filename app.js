@@ -29,6 +29,11 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 app.use(cors())
 
+app.get('/ping', (req, res, next) => {
+  console.debug('inside ping route handler')
+  res.send('pong')
+})
+
 app.use("/", indexRouter);
 app.use("/users", usersRouter);
 
