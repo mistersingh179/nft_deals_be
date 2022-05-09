@@ -6,4 +6,9 @@
 
 ## make heroku only run the worker
 - manually set it in heroku
-- `heroku scale web=0 worker=1`
+- `heroku scale web=0 worker=1
+
+## see worker logs on heroku
+- by specifying dyno I can filter them `heroku logs --dyno=worker --app=nft-deals-be`
+- `heroku logs` will give them all
+

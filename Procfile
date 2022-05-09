@@ -1,2 +1,2 @@
 web: npm start
-worker: npm getChainData
+worker: npm run getChainData
