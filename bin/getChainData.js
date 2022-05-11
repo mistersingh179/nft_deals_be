@@ -19,6 +19,7 @@ const mg = mailgun.client({
 const rpc_url = {
   localhost: "http://localhost:8545",
   rinkeby: `https://rinkeby.infura.io/v3/${process.env.RINKEBY_INFURA_KEY}`,
+  mainnet: `https://mainnet.infura.io/v3/${process.env.INFURA_ID}`
 };
 
 const displayWeiAsEther = (wei, decimals) => {
