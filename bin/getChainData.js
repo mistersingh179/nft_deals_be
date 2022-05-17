@@ -19,7 +19,7 @@ const mg = mailgun.client({
 const rpc_url = {
   localhost: "http://localhost:8545",
   rinkeby: `https://rinkeby.infura.io/v3/${process.env.RINKEBY_INFURA_KEY}`,
-  mainnet: `https://mainnet.infura.io/v3/${process.env.INFURA_ID}`
+  mainnet: `https://mainnet.infura.io/v3/${process.env.RINKEBY_INFURA_KEY}`
 };
 
 const displayWeiAsEther = (wei, decimals) => {
@@ -52,17 +52,7 @@ const init = async () => {
     deployedContracts[process.env.CHAIN_ID][process.env.NETWORK_NAME].contracts;
 
   const provider = ethers.getDefaultProvider(
-    rpc_url[process.env.NETWORK_NAME],
-    {
-      etherscan: process.env.ETHERSCAN_API_KEY,
-      infura: {
-        projectId: process.env.RINKEBY_INFURA_KEY,
-        projectSecret: process.env.RINKEBY_DEPLOYER_PRIV_KEY,
-      },
-      alchemy: process.env.ALCHEMY_API_KEY,
-      pocket: "-",
-      ankr: "-",
-    }
+    rpc_url[process.env.NETWORK_NAME]
   );
 
   const startBlockNumber = await provider.getBlockNumber();
