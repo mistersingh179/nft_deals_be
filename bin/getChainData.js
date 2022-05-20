@@ -111,7 +111,7 @@ const init = async () => {
             text:
               "You have been outbid!" +
               ` ${process.env.DOMAIN_ADDRESS}/auction2/${auctionAddress}`,
-            template: "outbid",
+            template: "outbid_with_refund_message",
             "h:X-Mailgun-Variables": JSON.stringify({
               amount: `${ethers.constants.EtherSymbol} ${displayWeiAsEther(
                 amount
