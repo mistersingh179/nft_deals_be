@@ -10,54 +10,26 @@ const deployedContracts = require("../contracts/hardhat_contracts.json");
 const formData = require("form-data");
 const Mailgun = require("mailgun.js");
 const moment = require("moment");
+const { chainToName, rpcUrl } = require("../contants");
+const { displayWeiAsEther, displayDuration } = require("../helpers");
+
 const mailgun = new Mailgun(formData);
 const mg = mailgun.client({
   username: "api",
   key: process.env.MAILGUN_API_KEY,
 });
 
-const rpc_url = {
-  localhost: "http://localhost:8545",
-  rinkeby: `https://rinkeby.infura.io/v3/${process.env.RINKEBY_INFURA_KEY}`,
-  mainnet: `https://mainnet.infura.io/v3/${process.env.RINKEBY_INFURA_KEY}`
-  mumbai: `https://polygon-mumbai.infura.io/v3/${process.env.RINKEBY_INFURA_KEY}`
-  polygon: `https://polygon-mainnet.infura.io/v3/${process.env.RINKEBY_INFURA_KEY}`
-};
-
-const displayWeiAsEther = (wei, decimals) => {
-  try {
-    if (decimals == undefined) {
-      decimals = 4;
-    }
-    return ethers.utils.commify(
-      parseFloat(ethers.utils.formatEther(wei)).toFixed(decimals)
-    );
-  } catch (e) {
-    return "0";
-  }
-};
-
-const displayDuration = (secondsLeft) => {
-  const durationToExpire = moment.duration(secondsLeft, "seconds");
-  return `${durationToExpire.hours()}h ${durationToExpire.minutes()}m ${durationToExpire.seconds()}s`;
-};
-
 const setupChain = async (chainId, networkName) => {
-  console.log('in setupChain with: ', chainId, networkName);
-  console.log('rpc url is: ', rpc_url[networkName]);
+  console.log("in setupChain with: ", chainId, networkName, rpcUrl[networkName]);
 
-  const contracts =
-    deployedContracts[process.env.CHAIN_ID][process.env.NETWORK_NAME].contracts;
-
-  const provider = ethers.getDefaultProvider(
-    rpc_url[process.env.NETWORK_NAME]
-  );
+  const contracts = deployedContracts[chainId][networkName].contracts;
+  const provider = ethers.getDefaultProvider(rpcUrl[networkName]);
 
   const startBlockNumber = await provider.getBlockNumber();
   console.log("startBlockNumber: ", startBlockNumber);
 
   provider.on("poll", (pollId, blockNumber) => {
-    console.log("polling | pollId: ", pollId, " blockNumber: ", blockNumber);
+    console.log("polling ", networkName, " | blockNumber: ", blockNumber);
   });
 
   const auctionFactory = new ethers.Contract(
@@ -100,31 +72,30 @@ const setupChain = async (chainId, networkName) => {
         where: { walletAddress: previousWinnerAddress },
       });
       if (user) {
-        console.log("found email for the previousWinner: ", user.emailAddress);
-        console.log("*** SENDING EMAIL ***");
-        // mg.messages
-        //   .create("mail.nftdeals.xyz", {
-        //     from: "Notification-Bot <no-reply@mail.nftdeals.xyz>",
-        //     to: [user.emailAddress],
-        //     subject: "Outbid Notification",
-        //     text:
-        //       "You have been outbid!" +
-        //       ` ${process.env.DOMAIN_ADDRESS}/auction2/${auctionAddress}`,
-        //     template: "outbid_with_refund_message",
-        //     "h:X-Mailgun-Variables": JSON.stringify({
-        //       amount: `${ethers.constants.EtherSymbol} ${displayWeiAsEther(
-        //         amount
-        //       )}`,
-        //       fromAddress: fromAddress,
-        //       blockNumber: eventObj.blockNumber,
-        //       secondsLeftInAuction: displayDuration(
-        //         secondsLeftInAuction.toString()
-        //       ),
-        //       auctionLink: `${process.env.DOMAIN_ADDRESS}/auction2/${auctionAddress}`,
-        //     }),
-        //   })
-        //   .then((msg) => console.log(msg)) // logs response data
-        //   .catch((err) => console.log(err)); // logs any error
+        console.log("found email for the previousWinner. Sending email to:", user.emailAddress, networkName);
+        mg.messages
+          .create("mail.nftdeals.xyz", {
+            from: "Notification-Bot <no-reply@mail.nftdeals.xyz>",
+            to: [user.emailAddress],
+            subject: "Outbid Notification",
+            text:
+              "You have been outbid!" +
+              ` ${process.env.DOMAIN_ADDRESS}/auction2/${auctionAddress}?chain=${networkName}`,
+            template: "outbid_with_refund_message",
+            "h:X-Mailgun-Variables": JSON.stringify({
+              amount: `${ethers.constants.EtherSymbol} ${displayWeiAsEther(
+                amount
+              )}`,
+              fromAddress: fromAddress,
+              blockNumber: eventObj.blockNumber,
+              secondsLeftInAuction: displayDuration(
+                secondsLeftInAuction.toString()
+              ),
+              auctionLink: `${process.env.DOMAIN_ADDRESS}/auction2/${auctionAddress}?chain=${networkName}`,
+            }),
+          })
+          .then((msg) => console.log(msg)) // logs response data
+          .catch((err) => console.log(err)); // logs any error
       } else {
         console.log("no email found for this wallet.");
       }
@@ -157,10 +128,16 @@ const init = async () => {
   console.log(process.env.RINKEBY_INFURA_KEY);
   console.log(process.env.CHAIN_ID);
   console.log(process.env.NETWORK_NAME);
-  console.log(rpc_url[process.env.NETWORK_NAME]);
+  console.log(rpcUrl[process.env.NETWORK_NAME]);
 
-  setupChain(process.env.CHAIN_ID, )
-}
+  for (const chainId of Object.keys(chainToName)) {
+    try {
+      await setupChain(chainId, chainToName[chainId]);
+    } catch (e) {
+      console.error("failed to setup chain: ", e);
+    }
+  }
+};
 
 init().catch((err) => {
   console.error("getChainData failed with: ", err);
