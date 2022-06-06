@@ -81,7 +81,8 @@ const setupChain = async (chainId, networkName) => {
             text:
               "You have been outbid!" +
               ` ${process.env.DOMAIN_ADDRESS}/auction2/${auctionAddress}?chain=${networkName}`,
-            template: "outbid_with_refund_message",
+            // template: "outbid_with_refund_message",
+            template: "outbid",
             "h:X-Mailgun-Variables": JSON.stringify({
               amount: `${ethers.constants.EtherSymbol} ${displayWeiAsEther(
                 amount
