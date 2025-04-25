@@ -61,3 +61,22 @@ typings/
 
 # next.js build output
 .next
+.env
+.env.*
+*.pem
+*.key
+*.crt
+.DS_Store
+node_modules/
+build/
+dist/
+.idea/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+

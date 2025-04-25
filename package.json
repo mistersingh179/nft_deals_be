@@ -5,7 +5,8 @@
   "engines": {
     "node": "14.9.x"
   },
-  "private": true,
+  "private": false,
+  "license": "MIT",
   "eslintConfig": {
     "extends": [
       "react-app",
